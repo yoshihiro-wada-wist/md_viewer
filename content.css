@@ -1,0 +1,8 @@
+/* content script 用: file:// で開いた際に元ページの余白等をリセット */
+html, body {
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 100%;
+  overflow: hidden;
+  background: #2a2a2a;
+}

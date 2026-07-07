@@ -1,0 +1,411 @@
+/* ===== Markdown Viewer 共通スタイル ===== */
+:root {
+  --bg: #1e1e1e;
+  --canvas-bg: #2a2a2a;
+  --page-bg: #ffffff;
+  --text: #24292f;
+  --muted: #57606a;
+  --border: #d0d7de;
+  --accent: #2563eb;
+  --code-bg: #f6f8fa;
+  --toolbar-bg: #252526;
+  --toolbar-text: #e0e0e0;
+}
+
+.mdv-root {
+  position: fixed;
+  inset: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN",
+    "Hiragino Sans", Meiryo, sans-serif;
+  overflow: hidden;
+  z-index: 2147483000;
+}
+
+/* ---- ツールバー ---- */
+.mdv-toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--toolbar-bg);
+  color: var(--toolbar-text);
+  border-bottom: 1px solid #000;
+  user-select: none;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  flex-wrap: wrap;
+}
+.mdv-toolbar .mdv-title {
+  font-weight: 600;
+  font-size: 13px;
+  margin-right: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 40vw;
+}
+.mdv-toolbar button {
+  background: #3a3a3c;
+  color: var(--toolbar-text);
+  border: 1px solid #4a4a4c;
+  border-radius: 5px;
+  padding: 4px 9px;
+  font-size: 13px;
+  cursor: pointer;
+  line-height: 1.2;
+  min-width: 30px;
+}
+.mdv-toolbar button:hover { background: #4a4a4c; }
+.mdv-toolbar button:active { background: #2563eb; border-color: #2563eb; }
+.mdv-zoom-level,
+.mdv-font-level {
+  font-size: 12px;
+  min-width: 46px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.mdv-toolbar button > span { pointer-events: none; }
+.mdv-sep { width: 1px; height: 20px; background: #4a4a4c; margin: 0 4px; }
+.mdv-hint { font-size: 11px; color: #9a9a9a; white-space: nowrap; }
+
+/* ---- 通知バナー（Mermaid 読込失敗など） ---- */
+.mdv-root .mdv-notice {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  background: #fff7df;
+  color: #6b5300;
+  border-bottom: 1px solid #e4cf87;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ---- キャンバス（ズーム・パン領域） ---- */
+.mdv-canvas {
+  flex: 1 1 auto;
+  position: relative;
+  overflow: hidden;
+  background: var(--canvas-bg);
+  cursor: grab;
+}
+.mdv-canvas.panning { cursor: grabbing; }
+.mdv-canvas.dragover::after {
+  content: "ここにマークダウンファイルをドロップ";
+  position: absolute;
+  inset: 16px;
+  border: 3px dashed var(--accent);
+  border-radius: 12px;
+  background: rgba(37, 99, 235, 0.12);
+  color: #fff;
+  font-size: 22px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* ---- ズーム対象の紙面 ---- */
+.mdv-viewport {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+.mdv-page {
+  width: 820px;
+  min-height: 400px;
+  margin: 40px;
+  padding: 48px 56px;
+  background: var(--page-bg);
+  color: var(--text);
+  border-radius: 6px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  box-sizing: border-box;
+}
+
+/* ---- ドロップ案内（初期表示） ---- */
+.mdv-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #bbb;
+  text-align: center;
+  padding: 20px;
+  pointer-events: none;
+}
+.mdv-empty svg { width: 96px; height: 96px; opacity: 0.35; margin-bottom: 20px; }
+.mdv-empty h2 { margin: 0 0 8px; font-weight: 600; font-size: 22px; color: #ddd; }
+.mdv-empty p { margin: 4px 0; font-size: 14px; }
+.mdv-empty .mdv-open-btn {
+  pointer-events: auto;
+  margin-top: 20px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 22px;
+  font-size: 15px;
+  cursor: pointer;
+}
+.mdv-empty .mdv-open-btn:hover { background: #1d4ed8; }
+
+/* ===== レンダリングされたマークダウンのスタイル ===== */
+.markdown-body {
+  font-size: 16px;
+  line-height: 1.7;
+  word-wrap: break-word;
+}
+.markdown-body > *:first-child { margin-top: 0; }
+.markdown-body > *:last-child { margin-bottom: 0; }
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  margin: 1.5em 0 0.6em;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.markdown-body h1 { font-size: 2em; border-bottom: 1px solid var(--border); padding-bottom: 0.3em; }
+.markdown-body h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.3em; }
+.markdown-body h3 { font-size: 1.25em; }
+.markdown-body h4 { font-size: 1em; }
+.markdown-body h5 { font-size: 0.875em; }
+.markdown-body h6 { font-size: 0.85em; color: var(--muted); }
+.markdown-body p { margin: 0 0 1em; }
+.markdown-body a { color: var(--accent); text-decoration: none; }
+.markdown-body a:hover { text-decoration: underline; }
+.markdown-body strong { font-weight: 600; }
+.markdown-body img { max-width: 100%; height: auto; border-radius: 4px; }
+
+.markdown-body code {
+  background: var(--code-bg);
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-size: 85%;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+.markdown-body .code-block {
+  position: relative;
+  margin: 0 0 1em;
+}
+.markdown-body .code-block .code-lang {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 11px;
+  color: var(--muted);
+  background: #e6e9ee;
+  padding: 2px 8px;
+  border-radius: 0 6px 0 6px;
+  font-family: monospace;
+}
+.markdown-body pre {
+  background: var(--code-bg);
+  padding: 14px 16px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 0;
+  border: 1px solid var(--border);
+}
+.markdown-body pre code {
+  background: none;
+  padding: 0;
+  font-size: 85%;
+  color: #24292f;
+  white-space: pre;
+}
+.markdown-body blockquote {
+  margin: 0 0 1em;
+  padding: 0.4em 1em;
+  color: var(--muted);
+  border-left: 4px solid var(--border);
+  background: #f8f9fb;
+}
+.markdown-body blockquote > *:last-child { margin-bottom: 0; }
+.markdown-body ul,
+.markdown-body ol { margin: 0 0 1em; padding-left: 2em; }
+.markdown-body li { margin: 0.25em 0; }
+.markdown-body li .task { display: inline-flex; align-items: baseline; gap: 0.4em; }
+.markdown-body li input[type="checkbox"] { transform: translateY(1px); }
+.markdown-body hr { border: none; border-top: 2px solid var(--border); margin: 1.6em 0; }
+.markdown-body del { color: var(--muted); }
+
+.markdown-body .table-wrap { overflow-x: auto; margin: 0 0 1em; }
+.markdown-body table { border-collapse: collapse; width: auto; }
+.markdown-body th,
+.markdown-body td { border: 1px solid var(--border); padding: 7px 13px; }
+.markdown-body th { background: var(--code-bg); font-weight: 600; }
+.markdown-body tr:nth-child(2n) td { background: #f8f9fb; }
+
+/* ---- Mermaid ダイアグラム ---- */
+.markdown-body .mermaid-block { margin: 0 0 1em; }
+.markdown-body .mermaid-rendered {
+  padding: 12px;
+  background: #fbfcfe;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow-x: auto;
+  text-align: center;
+}
+.markdown-body .mermaid-rendered svg { max-width: 100%; height: auto; }
+.markdown-body pre.mermaid {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--muted);
+  font-family: monospace;
+  font-size: 12px;
+  text-align: left;
+}
+/* mermaid.run で描画済みになったら図として中央表示 */
+.markdown-body pre.mermaid[data-processed="true"] {
+  text-align: center;
+  color: inherit;
+  white-space: normal;
+}
+.markdown-body pre.mermaid[data-processed="true"] svg { max-width: 100%; height: auto; }
+
+/* ---- Mermaid 図 専用の 拡大縮小・パン移動ビューポート ---- */
+.markdown-body .mmd-pz {
+  position: relative;
+  height: 460px;
+  min-height: 160px;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  background:
+    linear-gradient(#eef1f6 1px, transparent 1px) 0 0 / 22px 22px,
+    linear-gradient(90deg, #eef1f6 1px, transparent 1px) 0 0 / 22px 22px,
+    #fbfcfe;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: grab;
+  resize: vertical;            /* 枠の高さをユーザーが調整可能 */
+  touch-action: none;
+  user-select: none;
+}
+.markdown-body .mmd-pz.panning { cursor: grabbing; }
+.markdown-body .mmd-pz .mmd-pz-viewport {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+.markdown-body .mmd-pz .mmd-pz-viewport svg {
+  max-width: none !important;
+  height: auto;
+  display: block;
+}
+.markdown-body .mmd-pz .mmd-pz-controls {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  z-index: 5;
+}
+.markdown-body .mmd-pz .mmd-pz-controls button {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+.markdown-body .mmd-pz .mmd-pz-controls button:hover { background: #fff; border-color: var(--accent); }
+.markdown-body .mmd-pz .mmd-pz-controls button:active { background: var(--accent); color: #fff; }
+
+/* ===== 印刷 ===== */
+/* ズーム/パンの transform を解除し、紙面を実寸でページに流し込んで印刷する */
+@media print {
+  @page { margin: 16mm; }
+
+  html, body {
+    background: #fff !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .mdv-root {
+    position: static !important;
+    inset: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+    z-index: auto !important;
+  }
+
+  /* 操作系は印刷しない */
+  .mdv-toolbar,
+  .mdv-empty { display: none !important; }
+
+  .mdv-canvas {
+    position: static !important;
+    flex: none !important;
+    overflow: visible !important;
+    background: #fff !important;
+    cursor: auto !important;
+  }
+
+  /* ビュー領域の変形を解除して通常フローへ戻す */
+  .mdv-viewport {
+    position: static !important;
+    transform: none !important;
+    will-change: auto !important;
+  }
+
+  .mdv-page {
+    width: auto !important;
+    max-width: 100% !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* Mermaid 図: 独立ビューポートの高さ制限・変形を解除して図全体を出力 */
+  .markdown-body .mmd-pz {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    resize: none !important;
+    background: #fff !important;
+    page-break-inside: avoid;
+  }
+  .markdown-body .mmd-pz .mmd-pz-viewport {
+    position: static !important;
+    transform: none !important;
+  }
+  .markdown-body .mmd-pz .mmd-pz-viewport svg {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+  .markdown-body .mmd-pz .mmd-pz-controls { display: none !important; }
+
+  /* 途中で分断されると読みにくい要素の改ページ制御 */
+  .markdown-body pre,
+  .markdown-body blockquote,
+  .markdown-body table,
+  .markdown-body img,
+  .markdown-body .mermaid-rendered { page-break-inside: avoid; }
+  .markdown-body h1,
+  .markdown-body h2,
+  .markdown-body h3,
+  .markdown-body h4 { page-break-after: avoid; }
+}

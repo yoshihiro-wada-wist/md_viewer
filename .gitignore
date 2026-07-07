@@ -1,0 +1,19 @@
+# OS 生成ファイル
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# エディタ / IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# パッケージング成果物
+*.zip
+*.crx
+*.pem
+
+# ログ・一時ファイル
+*.log
+tmp/

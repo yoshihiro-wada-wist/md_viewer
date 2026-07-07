@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Markdown Viewer (MD Viewer)",
+  "version": "1.0.1",
+  "description": "マークダウンファイルをビジュアルに表示。拡大縮小・パン移動・ドラッグ&ドロップに対応。",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Markdown Viewer を開く",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": ["tabs"],
+  "content_scripts": [
+    {
+      "matches": ["file:///*.md", "file:///*.markdown", "file:///*.mdown", "file:///*.mkd"],
+      "js": ["markdown.js", "viewer.js", "content.js"],
+      "css": ["viewer.css", "content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["viewer.html", "viewer.js", "viewer.css", "markdown.js", "mermaid.min.js", "mermaid-run.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
