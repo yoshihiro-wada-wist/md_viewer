@@ -21,7 +21,8 @@
   "background": {
     "service_worker": "background.js"
   },
-  "permissions": ["tabs"],
+  "permissions": ["tabs", "webNavigation"],
+  "host_permissions": ["file:///*"],
   "content_scripts": [
     {
       "matches": ["file:///*.md", "file:///*.markdown", "file:///*.mdown", "file:///*.mkd"],
