@@ -414,6 +414,10 @@
         requestAnimationFrame(function () { ctrl.fitWidth(); });
       });
       requestAnimationFrame(function () { ctrl.fitWidth(); });
+      // フォールバック: 読み込み経路（?src= 等）やタイミングで rAF が
+      // 走らず初期幅合わせが適用されないと、紙面が左に寄ったままになる。
+      // レイアウト確定後に確実に一度合わせる。
+      setTimeout(function () { ctrl.fitWidth(); }, 120);
     }
 
     function loadFile(file) {
