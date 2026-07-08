@@ -21,6 +21,26 @@
   var raw = getRawMarkdown();
   if (raw === null || raw === undefined) return; // 通常のHTMLページでは何もしない
 
+  // file:// ページは Chrome 仕様で favicon を表示できない。読み取り済みの本文を
+  // chrome.storage 経由で拡張ページ(viewer.html)へ引き継いでリダイレクトすると、
+  // 拡張ページ扱いになりタブに拡張機能のアイコンが表示される。WSL など fetch でき
+  // ないファイルでも、ここで取得済みの本文を渡すため確実に開ける。
+  if (location.protocol === "file:" && typeof chrome !== "undefined" &&
+      chrome.storage && chrome.storage.local && chrome.runtime && chrome.runtime.getURL) {
+    var handoff = {};
+    handoff["mdv:" + location.href] = raw;
+    try {
+      chrome.storage.local.set(handoff, function () {
+        if (chrome.runtime.lastError) { renderInPlace(); return; }
+        location.replace(chrome.runtime.getURL("viewer.html") + "?src=" + encodeURIComponent(location.href));
+      });
+      return; // 成功時はリダイレクト。失敗時のみコールバックでその場描画にフォールバック
+    } catch (e) { /* 続けてその場描画にフォールバック */ }
+  }
+  renderInPlace();
+
+  // ===== その場描画（拡張ページへ本文を渡せない場合のフォールバック） =====
+  function renderInPlace() {
   // 既存の内容を消してビューアーUIを構築
   document.documentElement.innerHTML = "";
   var head = document.createElement("head");
@@ -224,4 +244,5 @@
   });
   window.addEventListener("dragover", function (e) { e.preventDefault(); });
   window.addEventListener("drop", function (e) { e.preventDefault(); });
+  } // renderInPlace
 })();

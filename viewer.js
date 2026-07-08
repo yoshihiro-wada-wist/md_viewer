@@ -500,8 +500,25 @@
     window.addEventListener("dragover", function (e) { e.preventDefault(); });
     window.addEventListener("drop", function (e) { e.preventDefault(); });
 
-    // クエリ ?file= で外部URLを読み込む（file:// の直接表示補助）
     var params = new URLSearchParams(location.search);
+
+    // ?src= で chrome.storage に置かれた本文を読み込む（content.js からの引き継ぎ）。
+    // file:// を拡張ページで開き直してタブに拡張アイコンを表示するための経路。
+    var srcKey = params.get("src");
+    if (srcKey && typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
+      var stKey = "mdv:" + srcKey;
+      chrome.storage.local.get(stKey, function (obj) {
+        var text = obj && obj[stKey];
+        if (typeof text === "string") {
+          loadText(text, decodeURIComponent(srcKey.split("/").pop() || "Markdown"));
+          chrome.storage.local.remove(stKey);
+        } else {
+          showLoadError(srcKey, new Error("本文データが見つかりませんでした（ファイルを開き直してください）"));
+        }
+      });
+    }
+
+    // クエリ ?file= で外部URLを読み込む（file:// の直接表示補助）
     var fileUrl = params.get("file");
     if (fileUrl) {
       fetch(fileUrl).then(function (r) {
