@@ -31,6 +31,15 @@
   var fileName = decodeURIComponent(location.pathname.split("/").pop() || "Markdown");
   document.title = fileName;
 
+  // タブのファビコンを拡張機能アイコンに設定（既定のドキュメントアイコンを置き換え）
+  try {
+    var favicon = document.createElement("link");
+    favicon.rel = "icon";
+    favicon.type = "image/png";
+    favicon.href = chrome.runtime.getURL("icons/icon32.png");
+    head.appendChild(favicon);
+  } catch (e) {}
+
   var root = document.createElement("div");
   root.className = "mdv-root";
   root.innerHTML =
@@ -43,7 +52,7 @@
       '<button data-act="fit" title="幅に合わせる">幅合わせ</button>' +
       '<span class="mdv-sep"></span>' +
       '<button data-act="fontdown" title="文字を小さく"><span style="font-size:11px">A</span>−</button>' +
-      '<span class="mdv-font-level">16px</span>' +
+      '<span class="mdv-font-level">12px</span>' +
       '<button data-act="fontup" title="文字を大きく"><span style="font-size:15px">A</span>＋</button>' +
       '<span class="mdv-sep"></span>' +
       '<button data-act="print" title="印刷 (Ctrl + P)">🖨 印刷</button>' +
