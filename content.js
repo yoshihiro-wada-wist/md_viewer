@@ -31,13 +31,26 @@
   var fileName = decodeURIComponent(location.pathname.split("/").pop() || "Markdown");
   document.title = fileName;
 
-  // タブのファビコンを拡張機能アイコンに設定（既定のドキュメントアイコンを置き換え）
+  // タブのファビコンを拡張機能アイコンに設定（既定のドキュメントアイコンを置き換え）。
+  // file:// ページでは chrome-extension:// を指す favicon が無視されるため、
+  // アイコンを取得して data URI に変換してから設定する。
   try {
     var favicon = document.createElement("link");
     favicon.rel = "icon";
     favicon.type = "image/png";
-    favicon.href = chrome.runtime.getURL("icons/icon32.png");
     head.appendChild(favicon);
+    fetch(chrome.runtime.getURL("icons/icon32.png"))
+      .then(function (r) { return r.blob(); })
+      .then(function (blob) {
+        return new Promise(function (resolve, reject) {
+          var fr = new FileReader();
+          fr.onload = function () { resolve(fr.result); };
+          fr.onerror = reject;
+          fr.readAsDataURL(blob);
+        });
+      })
+      .then(function (dataUrl) { favicon.href = dataUrl; })
+      .catch(function () {});
   } catch (e) {}
 
   var root = document.createElement("div");
