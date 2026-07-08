@@ -504,9 +504,28 @@
     var params = new URLSearchParams(location.search);
     var fileUrl = params.get("file");
     if (fileUrl) {
-      fetch(fileUrl).then(function (r) { return r.text(); })
+      fetch(fileUrl).then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status + " " + r.statusText);
+        return r.text();
+      })
         .then(function (t) { loadText(t, decodeURIComponent(fileUrl.split("/").pop())); })
-        .catch(function () {});
+        .catch(function (err) { showLoadError(fileUrl, err); });
+    }
+
+    // ?file= の読み込みに失敗したとき、無言の初期画面ではなく理由を表示する
+    function showLoadError(url, err) {
+      empty.style.display = "";
+      var h2 = empty.querySelector("h2");
+      if (h2) h2.textContent = "ファイルを読み込めませんでした";
+      var box = empty.querySelector(".mdv-load-error");
+      if (!box) {
+        box = document.createElement("p");
+        box.className = "mdv-load-error";
+        box.style.cssText = "max-width:640px;color:#e57373;word-break:break-all;font-size:13px";
+        var btn = empty.querySelector(".mdv-open-btn");
+        empty.insertBefore(box, btn || null);
+      }
+      box.textContent = String((err && err.message) || err) + " — " + decodeURIComponent(url);
     }
   }
 })(typeof window !== "undefined" ? window : this);

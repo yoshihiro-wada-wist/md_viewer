@@ -22,10 +22,13 @@
     "service_worker": "background.js"
   },
   "permissions": ["tabs", "webNavigation"],
-  "host_permissions": ["file:///*"],
+  "host_permissions": ["file:///*", "file://*/*"],
   "content_scripts": [
     {
-      "matches": ["file:///*.md", "file:///*.markdown", "file:///*.mdown", "file:///*.mkd"],
+      "matches": [
+        "file:///*.md", "file:///*.markdown", "file:///*.mdown", "file:///*.mkd",
+        "file://*/*.md", "file://*/*.markdown", "file://*/*.mdown", "file://*/*.mkd"
+      ],
       "js": ["markdown.js", "viewer.js", "content.js"],
       "css": ["viewer.css", "content.css"],
       "run_at": "document_idle"
