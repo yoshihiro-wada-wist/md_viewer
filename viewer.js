@@ -54,7 +54,7 @@
       scale = 1; tx = 0; ty = 0; apply();
     }
 
-    // 紙面の幅をキャンバス幅に合わせる
+    // 紙面の幅をキャンバス幅に合わせる（左右の余白が均等になるよう中央寄せ）
     function fitWidth() {
       var page = viewport.firstElementChild;
       if (!page) return;
@@ -62,8 +62,10 @@
       var pw = page.offsetWidth;
       if (!pw) return;
       var margin = 40;
+      // 紙面自身の左マージン分だけ右にずれるため、tx で打ち消して左右対称にする
+      var ml = parseFloat(getComputedStyle(page).marginLeft) || 0;
       scale = clampScale((r.width - margin * 2) / pw);
-      tx = (r.width - pw * scale) / 2;
+      tx = (r.width - pw * scale) / 2 - ml * scale;
       ty = margin;
       apply();
     }
