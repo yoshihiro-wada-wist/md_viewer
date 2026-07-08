@@ -172,7 +172,7 @@
 
   // 表示内の文字サイズ（基準フォントサイズ）を拡大縮小する。見出し等は em 指定なので比例して変化する。
   function createFontSizer(pageEl, onChange) {
-    var DEFAULT = 16, MIN = 9, MAX = 44, px = DEFAULT;
+    var DEFAULT = 12, MIN = 9, MAX = 44, px = DEFAULT;
     function apply() {
       pageEl.style.fontSize = px + "px";
       if (onChange) onChange(px);
