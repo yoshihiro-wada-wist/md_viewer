@@ -86,6 +86,53 @@
       }
     }, { passive: false });
 
+    // ---- キーボードでパン ----
+    function panBy(dx, dy) {
+      tx += dx;
+      ty += dy;
+      apply();
+    }
+
+    // 紙面の上端/下端へ移動（下端は紙面がキャンバスより短ければ上端と同じ）
+    function panToEdge(bottom) {
+      var page = viewport.firstElementChild;
+      if (!page) return;
+      var top = 40;
+      if (!bottom) { ty = top; apply(); return; }
+      var h = page.offsetHeight * scale;
+      var ch = canvas.getBoundingClientRect().height;
+      ty = h + top <= ch ? top : ch - h - 40;
+      apply();
+    }
+
+    // 入力中やボタン操作中はページのパンを行わない
+    function isEditingTarget(el) {
+      if (!el) return false;
+      var tag = (el.tagName || "").toLowerCase();
+      return tag === "input" || tag === "textarea" || tag === "select" ||
+        tag === "button" || el.isContentEditable;
+    }
+
+    var KEY_STEP = 60;
+    window.addEventListener("keydown", function (e) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (isEditingTarget(e.target)) return;
+      var ch = canvas.getBoundingClientRect().height;
+      var step = e.shiftKey ? KEY_STEP * 3 : KEY_STEP;
+      switch (e.key) {
+        case "ArrowUp":    panBy(0, step); break;
+        case "ArrowDown":  panBy(0, -step); break;
+        case "ArrowLeft":  panBy(step, 0); break;
+        case "ArrowRight": panBy(-step, 0); break;
+        case "PageUp":     panBy(0, ch * 0.9); break;
+        case "PageDown":   panBy(0, -ch * 0.9); break;
+        case "Home":       panToEdge(false); break;
+        case "End":        panToEdge(true); break;
+        default: return;
+      }
+      e.preventDefault();
+    });
+
     // ---- ドラッグでパン ----
     var dragging = false, startX = 0, startY = 0, startTx = 0, startTy = 0, moved = false;
     canvas.addEventListener("pointerdown", function (e) {

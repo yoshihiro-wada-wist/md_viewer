@@ -90,7 +90,7 @@
       '<span class="mdv-sep"></span>' +
       '<button data-act="print" title="印刷 (Ctrl + P)">🖨 印刷</button>' +
       '<span class="mdv-sep"></span>' +
-      '<span class="mdv-hint">ドラッグでパン移動 / Ctrl+ホイールで拡大縮小</span>' +
+      '<span class="mdv-hint">ドラッグ・↑↓←→でパン移動 / Ctrl+ホイールで拡大縮小</span>' +
     '</div>' +
     '<div class="mdv-canvas">' +
       '<div class="mdv-viewport">' +
