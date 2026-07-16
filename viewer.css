@@ -1,4 +1,24 @@
 /* ===== Markdown Viewer 共通スタイル ===== */
+
+/* コードブロック内の和文専用フォント。
+ * 罫線素片によるアスキーアートは「日本語1文字＝ASCII2文字ぶんの幅」で桁揃えされている。
+ * ところが Consolas 等の欧文等幅フォントは ASCII が 0.55em なのに、和文はグリフを持たず
+ * フォールバックした和文フォントの 1em で描かれるため、比が 2 倍でなく 1.818 倍になり、
+ * 行の右へ行くほど誤差が積み上がって図が崩れる。
+ * かといって和文等幅フォントを全体に使うと、今度は罫線・矢印・μ（East Asian Width が
+ * Ambiguous な文字）まで全角幅で描かれてしまい、半角前提で描かれた図がやはり崩れる。
+ * そこで ASCII と罫線は欧文等幅フォントのまま（同じ 0.55em で一致する）にして、
+ * 和文だけを unicode-range で切り出し、size-adjust でちょうど 2 倍の 1.1em に補正する。
+ * local() で実体を固定しているのは、フォールバック任せだと字幅が定まらないため。 */
+@font-face {
+  font-family: "MdvCjkMono";
+  src: local("BIZ UDGothic"), local("Noto Sans Mono CJK JP"), local("Source Han Mono"),
+       local("MS Gothic"), local("Osaka-Mono");
+  size-adjust: 110%; /* 和文 1em × 110% = 1.1em = ASCII 0.55em の 2 倍 */
+  /* 記号・仮名・漢字・全角形のみ。罫線(U+2500-)や矢印(U+2190-)は意図的に含めない */
+  unicode-range: U+3000-30FF, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF;
+}
+
 :root {
   --bg: #1e1e1e;
   --canvas-bg: #2a2a2a;
@@ -193,7 +213,8 @@
   padding: 0.2em 0.4em;
   border-radius: 4px;
   font-size: 85%;
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  /* 和文は MdvCjkMono へ回して字幅を ASCII の 2 倍に揃える（上部の @font-face 参照） */
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, "MdvCjkMono", monospace;
 }
 .markdown-body .code-block {
   position: relative;
