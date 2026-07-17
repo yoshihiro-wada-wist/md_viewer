@@ -78,6 +78,8 @@
   root.innerHTML =
     '<div class="mdv-toolbar">' +
       '<span class="mdv-title"></span>' +
+      '<button data-act="toc" title="目次の表示/非表示 (Ctrl + I)">☰ 目次</button>' +
+      '<span class="mdv-sep"></span>' +
       '<button data-act="zoomout" title="縮小 (Ctrl + ホイール下)">−</button>' +
       '<span class="mdv-zoom-level">100%</span>' +
       '<button data-act="zoomin" title="拡大 (Ctrl + ホイール上)">＋</button>' +
@@ -90,11 +92,14 @@
       '<span class="mdv-sep"></span>' +
       '<button data-act="print" title="印刷 (Ctrl + P)">🖨 印刷</button>' +
       '<span class="mdv-sep"></span>' +
-      '<span class="mdv-hint">ドラッグ・↑↓←→でパン移動 / Ctrl+ホイールで拡大縮小</span>' +
+      '<span class="mdv-hint">ドラッグ・↑↓←→でパン移動 / Ctrl+ホイールで拡大縮小 / Alt+↑↓で見出し移動</span>' +
     '</div>' +
-    '<div class="mdv-canvas">' +
-      '<div class="mdv-viewport">' +
-        '<div class="mdv-page markdown-body"></div>' +
+    '<div class="mdv-body">' +
+      '<aside class="mdv-toc-panel" hidden></aside>' +
+      '<div class="mdv-canvas">' +
+        '<div class="mdv-viewport">' +
+          '<div class="mdv-page markdown-body"></div>' +
+        '</div>' +
       '</div>' +
     '</div>';
   body.appendChild(root);
@@ -109,9 +114,20 @@
   titleEl.textContent = fileName;
   MdViewer.renderInto(page, raw);
 
+  var toc = null;
+  var tocBtn = root.querySelector('[data-act="toc"]');
   var ctrl = MdViewer.createZoomPan(canvas, viewport, {
-    onChange: function (s) { zoomLabel.textContent = Math.round(s * 100) + "%"; }
+    onChange: function (s) {
+      zoomLabel.textContent = Math.round(s * 100) + "%";
+      if (toc && toc.isOpen()) toc.syncActive();
+    }
   });
+
+  toc = MdViewer.createToc({
+    panel: root.querySelector(".mdv-toc-panel"), page: page, ctrl: ctrl,
+    onToggle: function (open) { tocBtn.classList.toggle("active", open); }
+  });
+  tocBtn.addEventListener("click", toc.toggle);
 
   // mermaid はページ(MAINワールド)側で描画する。
   // content_scripts に mermaid を同梱すると Chrome の UTF-8 検証で弾かれるため、
@@ -175,7 +191,7 @@
     }
   }
 
-  runMermaid(function () { MdViewer.enhanceMermaidPanZoom(page); ctrl.fitWidth(); });
+  runMermaid(function () { MdViewer.enhanceMermaidPanZoom(page); ctrl.fitWidth(); toc.measure(); });
   requestAnimationFrame(function () { ctrl.fitWidth(); });
 
   root.querySelector('[data-act="zoomin"]').addEventListener("click", ctrl.zoomIn);
@@ -184,6 +200,7 @@
   root.querySelector('[data-act="fit"]').addEventListener("click", ctrl.fitWidth);
   var fontSizer = MdViewer.createFontSizer(page, function (px) {
     if (fontLabel) fontLabel.textContent = px + "px";
+    if (toc) toc.measure();
   });
   root.querySelector('[data-act="fontup"]').addEventListener("click", fontSizer.up);
   root.querySelector('[data-act="fontdown"]').addEventListener("click", fontSizer.down);
@@ -208,7 +225,8 @@
       titleEl.textContent = file.name;
       document.title = file.name;
       ctrl.reset();
-      runMermaid(function () { MdViewer.enhanceMermaidPanZoom(page); ctrl.fitWidth(); });
+      toc.rebuild();
+      runMermaid(function () { MdViewer.enhanceMermaidPanZoom(page); ctrl.fitWidth(); toc.measure(); });
       requestAnimationFrame(function () { ctrl.fitWidth(); });
     };
     reader.readAsText(file, "UTF-8");

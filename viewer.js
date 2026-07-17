@@ -17,7 +17,7 @@
     function apply() {
       viewport.style.transform =
         "translate(" + tx + "px," + ty + "px) scale(" + scale + ")";
-      onChange(scale);
+      onChange(scale, tx, ty);
     }
 
     function clampScale(s) {
@@ -136,12 +136,15 @@
     // ---- ドラッグでパン ----
     var dragging = false, startX = 0, startY = 0, startTx = 0, startTy = 0, moved = false;
     canvas.addEventListener("pointerdown", function (e) {
+      // ここで必ず落としておく。リンク上でドラッグを開始しない場合も含め、
+      // 前回のパン操作の「動かした」状態を次のクリックへ持ち越すと、
+      // 下の click ハンドラがアンカーのクリックまで打ち消してしまう。
+      moved = false;
       // 左クリック/中クリックのみ。リンクや入力上では無効
       if (e.button !== 0 && e.button !== 1) return;
       var tag = (e.target.tagName || "").toLowerCase();
       if (tag === "a" || tag === "input" || tag === "button" || tag === "label") return;
       dragging = true;
-      moved = false;
       startX = e.clientX; startY = e.clientY;
       startTx = tx; startTy = ty;
       canvas.setPointerCapture(e.pointerId);
@@ -176,17 +179,42 @@
       zoomAt(e.clientX - r.left, e.clientY - r.top, 1.4);
     });
 
-    // ページ内アンカーへパン移動（現在の倍率を維持したまま対象を上部へ）
+    // 対象要素の紙面内オフセット（transform 前の座標）
+    function offsetTopIn(el) {
+      var top = 0, n = el;
+      while (n && n !== viewport) { top += n.offsetTop; n = n.offsetParent; }
+      return top;
+    }
+
+    // 要素へパン移動（現在の倍率を維持したまま対象を上部へ）
+    function scrollToElement(el) {
+      if (!el) return;
+      ty = 40 - offsetTopIn(el) * scale;
+      apply();
+    }
+
+    // id で紙面内の要素を探す。和文や先頭が数字の id（例: "1-装置概要"）は
+    // セレクタに埋め込むとエスケープ規則の影響を受けるため、id を直接比較する。
+    function findById(root, id) {
+      var all = root.querySelectorAll("[id]");
+      for (var i = 0; i < all.length; i++) {
+        if (all[i].id === id) return all[i];
+      }
+      return null;
+    }
+
+    // ページ内アンカーへパン移動
     function scrollToAnchor(id) {
       var page = viewport.firstElementChild;
       if (!page) return;
-      var target = page.querySelector('[id="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
-      if (!target) return;
-      // 対象要素の紙面内オフセット（transform 前の座標）
-      var offTop = 0, offLeft = 0, n = target;
-      while (n && n !== viewport) { offTop += n.offsetTop; offLeft += n.offsetLeft; n = n.offsetParent; }
-      ty = 40 - offTop * scale;
-      apply();
+      scrollToElement(findById(page, id));
+    }
+
+    // "#..." の中身を取り出す。%エンコード済みなら戻すが、生の和文 id が
+    // そのまま入っている場合もあるため、復号に失敗したら原文を使う。
+    function anchorId(href) {
+      var raw = href.slice(1);
+      try { return decodeURIComponent(raw); } catch (_) { return raw; }
     }
 
     // アンカークリックを捕捉
@@ -196,7 +224,13 @@
         var href = a.getAttribute("href") || "";
         if (href.charAt(0) === "#" && href.length > 1) {
           e.preventDefault();
-          scrollToAnchor(decodeURIComponent(href.slice(1)));
+          var id = anchorId(href);
+          // 復号後の id で見つからなければ、生の文字列でも探す
+          var page = viewport.firstElementChild;
+          if (page && !findById(page, id) && findById(page, href.slice(1))) {
+            id = href.slice(1);
+          }
+          scrollToAnchor(id);
         }
       }
     });
@@ -210,7 +244,10 @@
       fitWidth: fitWidth,
       setScale: setScale,
       scrollToAnchor: scrollToAnchor,
-      getScale: function () { return scale; }
+      scrollToElement: scrollToElement,
+      offsetTopIn: offsetTopIn,
+      getScale: function () { return scale; },
+      getOffset: function () { return { tx: tx, ty: ty }; }
     };
   }
 
@@ -232,6 +269,184 @@
       reset: function () { px = DEFAULT; apply(); },
       get: function () { return px; }
     };
+  }
+
+  // ===== 目次（インデックスジャンプ） =====
+  // 紙面の見出しから目次を組み立て、クリック/キー操作で該当位置へパン移動する。
+  // panel: 目次を差し込む空要素, ctrl: createZoomPan の戻り値, page: 紙面要素
+  function createToc(opts) {
+    var panel = opts.panel, page = opts.page, ctrl = opts.ctrl;
+    var onToggle = opts.onToggle || function () {};
+    var items = [];      // { el, link, text(小文字・絞り込み用), top(紙面内オフセット) }
+    var active = -1;
+
+    panel.classList.add("mdv-toc");
+    panel.innerHTML =
+      '<div class="mdv-toc-head">' +
+        '<span class="mdv-toc-caption">目次</span>' +
+        '<button type="button" class="mdv-toc-close" title="目次を閉じる (Ctrl + I)">×</button>' +
+      '</div>' +
+      '<input type="search" class="mdv-toc-filter" placeholder="見出しを絞り込み" spellcheck="false">' +
+      '<nav class="mdv-toc-list"></nav>';
+    var listEl = panel.querySelector(".mdv-toc-list");
+    var filterEl = panel.querySelector(".mdv-toc-filter");
+
+    // 見出しの id は markdown.js が本文から生成するため、空や重複がありうる。
+    // ジャンプ先として一意に参照できるよう、ここで補正する。
+    function ensureId(h, index, used) {
+      var id = h.id;
+      if (!id || used[id]) {
+        var base = id || "mdv-heading-" + (index + 1);
+        var cand = base, n = 2;
+        while (used[cand]) cand = base + "-" + (n++);
+        id = cand;
+        h.id = id;
+      }
+      used[id] = true;
+    }
+
+    function rebuild() {
+      items = [];
+      active = -1;
+      listEl.innerHTML = "";
+      var used = {};
+      var hs = page.querySelectorAll("h1, h2, h3, h4, h5, h6");
+      Array.prototype.forEach.call(hs, function (h, idx) {
+        ensureId(h, idx, used);
+        var level = parseInt(h.tagName.charAt(1), 10);
+        var text = (h.textContent || "").trim();
+        var link = document.createElement("a");
+        link.className = "mdv-toc-item mdv-toc-lv" + level;
+        link.href = "#" + h.id;
+        link.textContent = text || "（無題の見出し）";
+        link.title = text;
+        var index = items.length;
+        link.addEventListener("click", function (e) {
+          e.preventDefault();
+          jumpTo(index);
+        });
+        listEl.appendChild(link);
+        items.push({ el: h, link: link, text: text.toLowerCase(), top: 0 });
+      });
+      if (!items.length) {
+        var empty = document.createElement("p");
+        empty.className = "mdv-toc-empty";
+        empty.textContent = "見出しがありません";
+        listEl.appendChild(empty);
+      }
+      measure();
+      applyFilter();
+      syncActive();
+    }
+
+    // 見出しの紙面内オフセットを控える（Mermaid 描画などでレイアウトが動いたら再計測する）
+    function measure() {
+      items.forEach(function (it) { it.top = ctrl.offsetTopIn(it.el); });
+    }
+
+    function setActive(i) {
+      if (i === active) return;
+      if (items[active]) items[active].link.classList.remove("current");
+      active = i;
+      if (items[active]) {
+        items[active].link.classList.add("current");
+        scrollItemIntoView(items[active].link);
+      }
+    }
+
+    // 目次パネル自身のスクロール（紙面のパンとは別物）
+    function scrollItemIntoView(link) {
+      var lr = listEl.getBoundingClientRect(), ir = link.getBoundingClientRect();
+      if (ir.top < lr.top) listEl.scrollTop -= lr.top - ir.top + 8;
+      else if (ir.bottom > lr.bottom) listEl.scrollTop += ir.bottom - lr.bottom + 8;
+    }
+
+    // 紙面の上端付近にある見出しを現在位置として反映する。
+    // パン/ズームのたびに呼ばれるが、見出し位置は measure() で控えてあるため
+    // ここではレイアウトを読まず計算だけで済む（間引き不要）。
+    function syncActive() {
+      if (!items.length) return;
+      var scale = ctrl.getScale();
+      var ty = ctrl.getOffset().ty;
+      var found = 0;
+      for (var i = 0; i < items.length; i++) {
+        // 見出しの画面上の y 位置。上端から少し下（80px）までを「現在地」とみなす
+        if (ty + items[i].top * scale <= 80) found = i;
+        else break;
+      }
+      setActive(found);
+    }
+
+    function jumpTo(i) {
+      var it = items[i];
+      if (!it) return;
+      it.top = ctrl.offsetTopIn(it.el);
+      ctrl.scrollToElement(it.el);
+      setActive(i);
+    }
+
+    // 現在地から前後の見出しへ移動（Alt + ↑ / ↓）
+    function jumpBy(delta) {
+      if (!items.length) return;
+      var visible = items.filter(function (it) { return !it.link.hidden; });
+      if (!visible.length) return;
+      var cur = items[active];
+      var pos = cur ? visible.indexOf(cur) : -1;
+      if (pos === -1) {
+        // 絞り込みで現在地が隠れている場合は、直近の可視見出しを基準にする
+        pos = delta > 0 ? -1 : visible.length;
+      }
+      var next = visible[Math.min(visible.length - 1, Math.max(0, pos + delta))];
+      if (next) jumpTo(items.indexOf(next));
+    }
+
+    function applyFilter() {
+      var q = (filterEl.value || "").trim().toLowerCase();
+      items.forEach(function (it) {
+        it.link.hidden = q ? it.text.indexOf(q) === -1 : false;
+      });
+    }
+    filterEl.addEventListener("input", applyFilter);
+    filterEl.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { filterEl.value = ""; applyFilter(); e.stopPropagation(); }
+      else if (e.key === "Enter") {
+        var first = items.filter(function (it) { return !it.link.hidden; })[0];
+        if (first) jumpTo(items.indexOf(first));
+      }
+    });
+
+    function isOpen() { return !panel.hidden; }
+    function setOpen(open) {
+      panel.hidden = !open;
+      onToggle(open);
+      if (open) { measure(); syncActive(); }
+    }
+    panel.querySelector(".mdv-toc-close").addEventListener("click", function () { setOpen(false); });
+
+    var api = {
+      rebuild: rebuild,
+      measure: measure,
+      syncActive: syncActive,
+      jumpBy: jumpBy,
+      isOpen: isOpen,
+      setOpen: setOpen,
+      toggle: function () { setOpen(!isOpen()); }
+    };
+
+    // Ctrl+I で目次の開閉、Alt+↑/↓ で前後の見出しへジャンプ
+    window.addEventListener("keydown", function (e) {
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === "i" || e.key === "I")) {
+        e.preventDefault();
+        api.toggle();
+      } else if (e.altKey && !e.ctrlKey && !e.metaKey &&
+                 (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+        e.preventDefault();
+        jumpBy(e.key === "ArrowDown" ? 1 : -1);
+      }
+    });
+
+    rebuild();
+    return api;
   }
 
   // Mermaid ダイアグラムを SVG として描画（mermaid.min.js が読み込まれている場合のみ）
@@ -426,7 +641,8 @@
     renderInto: renderInto,
     renderMermaid: renderMermaid,
     enhanceMermaidPanZoom: enhanceMermaidPanZoom,
-    createFontSizer: createFontSizer
+    createFontSizer: createFontSizer,
+    createToc: createToc
   };
 
   // ===== viewer.html 専用の初期化 =====
@@ -444,27 +660,41 @@
     var fileInput = document.getElementById("mdvFileInput");
 
     var fontLabel = document.getElementById("mdvFont");
+    var tocPanel = document.getElementById("mdvToc");
+    var tocBtn = document.getElementById("mdvTocBtn");
+    var toc = null;
     var ctrl = createZoomPan(canvas, viewport, {
-      onChange: function (s) { zoomLabel.textContent = Math.round(s * 100) + "%"; }
+      onChange: function (s) {
+        zoomLabel.textContent = Math.round(s * 100) + "%";
+        if (toc && toc.isOpen()) toc.syncActive();
+      }
     });
     var fontSizer = createFontSizer(page, function (px) {
       if (fontLabel) fontLabel.textContent = px + "px";
+      if (toc) toc.measure();
     });
+
+    toc = createToc({
+      panel: tocPanel, page: page, ctrl: ctrl,
+      onToggle: function (open) { tocBtn.classList.toggle("active", open); }
+    });
+    tocBtn.addEventListener("click", toc.toggle);
 
     function loadText(text, name) {
       renderInto(page, text);
       empty.style.display = "none";
       title.textContent = name || "Markdown Viewer";
       document.title = (name ? name + " — " : "") + "Markdown Viewer";
+      toc.rebuild();
       // Mermaid 図を描画してから、レイアウト確定後に幅合わせ
       renderMermaid(page, function () {
-        requestAnimationFrame(function () { ctrl.fitWidth(); });
+        requestAnimationFrame(function () { ctrl.fitWidth(); toc.measure(); });
       });
       requestAnimationFrame(function () { ctrl.fitWidth(); });
       // フォールバック: 読み込み経路（?src= 等）やタイミングで rAF が
       // 走らず初期幅合わせが適用されないと、紙面が左に寄ったままになる。
       // レイアウト確定後に確実に一度合わせる。
-      setTimeout(function () { ctrl.fitWidth(); }, 120);
+      setTimeout(function () { ctrl.fitWidth(); toc.measure(); }, 120);
     }
 
     function loadFile(file) {

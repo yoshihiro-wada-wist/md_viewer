@@ -11,6 +11,7 @@
     <div class="mdv-toolbar">
       <span class="mdv-title" id="mdvTitle">Markdown Viewer</span>
       <button id="mdvOpen" title="ファイルを開く">📂 開く</button>
+      <button id="mdvTocBtn" title="目次の表示/非表示 (Ctrl + I)">☰ 目次</button>
       <span class="mdv-sep"></span>
       <button id="mdvZoomOut" title="縮小 (Ctrl + ホイール下)">−</button>
       <span class="mdv-zoom-level" id="mdvZoom">100%</span>
@@ -24,22 +25,25 @@
       <span class="mdv-sep"></span>
       <button id="mdvPrint" title="印刷 (Ctrl + P)">🖨 印刷</button>
       <span class="mdv-sep"></span>
-      <span class="mdv-hint">ドラッグ・↑↓←→でパン移動 / Ctrl+ホイールで拡大縮小</span>
+      <span class="mdv-hint">ドラッグ・↑↓←→でパン移動 / Ctrl+ホイールで拡大縮小 / Alt+↑↓で見出し移動</span>
     </div>
-    <div class="mdv-canvas" id="mdvCanvas">
-      <div class="mdv-viewport" id="mdvViewport">
-        <div class="mdv-page markdown-body" id="mdvPage"></div>
-      </div>
-      <div class="mdv-empty" id="mdvEmpty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <path d="M14 2v6h6"/>
-          <path d="M8 13h8M8 17h5"/>
-        </svg>
-        <h2>マークダウンファイルを表示</h2>
-        <p>ここに <b>.md</b> ファイルをドラッグ&ドロップ</p>
-        <p>または下のボタンから選択してください</p>
-        <button class="mdv-open-btn" id="mdvOpenBig">ファイルを選択</button>
+    <div class="mdv-body">
+      <aside id="mdvToc" hidden></aside>
+      <div class="mdv-canvas" id="mdvCanvas">
+        <div class="mdv-viewport" id="mdvViewport">
+          <div class="mdv-page markdown-body" id="mdvPage"></div>
+        </div>
+        <div class="mdv-empty" id="mdvEmpty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <path d="M14 2v6h6"/>
+            <path d="M8 13h8M8 17h5"/>
+          </svg>
+          <h2>マークダウンファイルを表示</h2>
+          <p>ここに <b>.md</b> ファイルをドラッグ&ドロップ</p>
+          <p>または下のボタンから選択してください</p>
+          <button class="mdv-open-btn" id="mdvOpenBig">ファイルを選択</button>
+        </div>
       </div>
     </div>
     <input type="file" id="mdvFileInput" accept=".md,.markdown,.mdown,.mkd,.txt,text/markdown" style="display:none" multiple>

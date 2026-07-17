@@ -81,6 +81,7 @@
 }
 .mdv-toolbar button:hover { background: #4a4a4c; }
 .mdv-toolbar button:active { background: #2563eb; border-color: #2563eb; }
+.mdv-toolbar button.active { background: #2563eb; border-color: #2563eb; }
 .mdv-zoom-level,
 .mdv-font-level {
   font-size: 12px;
@@ -103,8 +104,108 @@
   line-height: 1.5;
 }
 
+/* ---- 目次サイドバー + キャンバスの横並び ---- */
+.mdv-body {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+}
+
+/* ---- 目次（インデックスジャンプ） ---- */
+.mdv-toc {
+  flex: 0 0 auto;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--toolbar-bg);
+  color: var(--toolbar-text);
+  border-right: 1px solid #000;
+  user-select: none;
+  resize: horizontal;
+  overflow: hidden;
+}
+.mdv-toc[hidden] { display: none; }
+.mdv-toc-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 8px 4px 12px;
+}
+.mdv-toc-caption {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  margin-right: auto;
+  color: #9a9a9a;
+}
+.mdv-toc-close {
+  background: none;
+  border: none;
+  color: #9a9a9a;
+  font-size: 16px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.mdv-toc-close:hover { background: #3a3a3c; color: var(--toolbar-text); }
+.mdv-toc-filter {
+  flex: 0 0 auto;
+  margin: 4px 10px 8px;
+  padding: 5px 8px;
+  background: #1e1e1e;
+  color: var(--toolbar-text);
+  border: 1px solid #4a4a4c;
+  border-radius: 5px;
+  font-size: 12px;
+  font-family: inherit;
+}
+.mdv-toc-filter:focus { outline: none; border-color: var(--accent); }
+.mdv-toc-list {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 0 6px 12px;
+}
+.mdv-toc-item {
+  display: block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border-left: 2px solid transparent;
+  color: #cfcfcf;
+  font-size: 12px;
+  line-height: 1.45;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+/* .mdv-toc-item の display:block が UA の [hidden] を上書きしてしまうため明示する */
+.mdv-toc-item[hidden] { display: none; }
+.mdv-toc-item:hover { background: #3a3a3c; color: #fff; }
+.mdv-toc-item.current {
+  background: rgba(37, 99, 235, 0.25);
+  border-left-color: var(--accent);
+  color: #fff;
+}
+/* 見出しレベルに応じた字下げ（h1 は目立たせる） */
+.mdv-toc-lv1 { font-weight: 600; font-size: 13px; color: #f0f0f0; }
+.mdv-toc-lv2 { padding-left: 18px; }
+.mdv-toc-lv3 { padding-left: 30px; }
+.mdv-toc-lv4 { padding-left: 42px; }
+.mdv-toc-lv5 { padding-left: 54px; }
+.mdv-toc-lv6 { padding-left: 66px; }
+.mdv-toc-empty {
+  margin: 12px 10px;
+  font-size: 12px;
+  color: #7a7a7a;
+}
+
 /* ---- キャンバス（ズーム・パン領域） ---- */
 .mdv-canvas {
+  min-width: 0;
   flex: 1 1 auto;
   position: relative;
   overflow: hidden;
@@ -373,7 +474,13 @@
 
   /* 操作系は印刷しない */
   .mdv-toolbar,
+  .mdv-toc,
   .mdv-empty { display: none !important; }
+
+  .mdv-body {
+    display: block !important;
+    min-height: 0 !important;
+  }
 
   .mdv-canvas {
     position: static !important;

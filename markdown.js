@@ -234,12 +234,19 @@
         var text = heading[2];
         var id;
         // Pandoc/Markdown Extra 形式の明示 ID: {#custom-id}
-        var customId = text.match(/\s*\{#([\w-]+)\}\s*$/);
+        // 和文の ID（{#1-装置概要} 等）も受け付ける。[\w-] だと ASCII しか拾えず、
+        // ID として認識されないまま "{#...}" が見出しに残り、リンク先も一致しなくなる。
+        var customId = text.match(/\s*\{#([^\s{}]+)\}\s*$/);
         if (customId) {
           id = customId[1];
           text = text.slice(0, customId.index);
         } else {
-          id = text.toLowerCase().replace(/[^\w　-鿿\- ]/g, "").replace(/\s+/g, "-");
+          // 自動生成 ID。残す文字は「文字・数字」を Unicode 全体で判定する。
+          // U+3000〜U+9FFF だけを許可すると、全角英数(ＡＢＣ１２３)・半角カナ(ｶﾀｶﾅ)・
+          // サロゲートペアの漢字(𠮟) が丸ごと落ち、リンク先と一致しなくなる。
+          id = text.toLowerCase()
+            .replace(/[^\p{L}\p{N}\p{M}\- ]/gu, "")
+            .replace(/\s+/g, "-");
         }
         html.push("<h" + level + ' id="' + escapeAttr(id) + '">' + parseInline(text) + "</h" + level + ">");
         i++;
