@@ -43,14 +43,16 @@
     text = escapeHtml(text);
 
     // 画像 ![alt](url "title")
-    text = text.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;([^&]*)&quot;)?\)/g,
+    // 表示文字に含まれる角かっこ（例: ppc[]）を許すため、対になった [] は中に入れられる。
+    // [^\]]+ だと "ppc[]" の ] で切れてしまい、リンクとして認識されない。
+    text = text.replace(/!\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\(([^)\s]+)(?:\s+&quot;([^&]*)&quot;)?\)/g,
       function (_, alt, url, title) {
         var t = title ? ' title="' + escapeAttr(title) + '"' : "";
         return '<img src="' + escapeAttr(safeUrl(url)) + '" alt="' + escapeAttr(alt) + '"' + t + ' loading="lazy">';
       });
 
-    // リンク [text](url "title")
-    text = text.replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+&quot;([^&]*)&quot;)?\)/g,
+    // リンク [text](url "title") ※角かっこの扱いは画像と同じ
+    text = text.replace(/\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\(([^)\s]+)(?:\s+&quot;([^&]*)&quot;)?\)/g,
       function (_, label, url, title) {
         var t = title ? ' title="' + escapeAttr(title) + '"' : "";
         // ページ内アンカー(#...)は新規タブを開かず、内部スクロール扱い
