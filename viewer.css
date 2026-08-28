@@ -230,6 +230,31 @@
   pointer-events: none;
 }
 
+/* ---- 縦スクロールバー（キャンバス右端に重ねて表示） ---- */
+.mdv-scrollbar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 12px;
+  background: rgba(0, 0, 0, 0.22);
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  z-index: 6;
+}
+.mdv-scrollbar.mdv-scrollbar-off { display: none; }
+.mdv-scroll-thumb {
+  position: absolute;
+  top: 0;
+  left: 2px;
+  right: 2px;
+  min-height: 24px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.3);
+  cursor: default;
+}
+.mdv-scroll-thumb:hover { background: rgba(255, 255, 255, 0.45); }
+.mdv-scroll-thumb.dragging { background: rgba(255, 255, 255, 0.6); }
+
 /* ---- ズーム対象の紙面 ---- */
 .mdv-viewport {
   position: absolute;
@@ -475,6 +500,7 @@
   /* 操作系は印刷しない */
   .mdv-toolbar,
   .mdv-toc,
+  .mdv-scrollbar,
   .mdv-empty { display: none !important; }
 
   .mdv-body {

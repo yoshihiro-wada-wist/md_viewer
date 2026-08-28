@@ -17,12 +17,98 @@
     function apply() {
       viewport.style.transform =
         "translate(" + tx + "px," + ty + "px) scale(" + scale + ")";
+      syncScrollbar();
       onChange(scale, tx, ty);
     }
 
     function clampScale(s) {
       return Math.min(MAX_SCALE, Math.max(MIN_SCALE, s));
     }
+
+    // ---- 縦スクロールバー ----
+    // 紙面は transform でパンしているためブラウザ標準のスクロールバーが出ない。
+    // 現在位置と紙面の高さから、つまみの位置・大きさを自前で描画する。
+    var sbTrack = document.createElement("div");
+    sbTrack.className = "mdv-scrollbar";
+    var sbThumb = document.createElement("div");
+    sbThumb.className = "mdv-scroll-thumb";
+    sbTrack.appendChild(sbThumb);
+    canvas.appendChild(sbTrack);
+
+    // スクロール量の算出。パンは自由移動で紙面の外へも出られるため、
+    // はみ出した分も範囲に含めてつまみがトラックから飛び出さないようにする。
+    function scrollMetrics() {
+      var ch = canvas.clientHeight;
+      // viewport の高さは紙面 + 上下マージン。倍率を掛けて画面上の高さにする
+      var h = viewport.offsetHeight * scale;
+      var top = Math.min(0, -ty);
+      var bottom = Math.max(h, -ty + ch);
+      return { ch: ch, top: top, total: Math.max(1, bottom - top) };
+    }
+
+    function syncScrollbar() {
+      var m = scrollMetrics();
+      // 紙面が収まりきっているときは表示しない
+      if (m.total <= m.ch + 1) { sbTrack.classList.add("mdv-scrollbar-off"); return; }
+      sbTrack.classList.remove("mdv-scrollbar-off");
+      var size = Math.max(24, m.ch * m.ch / m.total);
+      var room = m.ch - size;
+      var pos = room <= 0 ? 0 : (-ty - m.top) / (m.total - m.ch) * room;
+      sbThumb.style.height = size + "px";
+      sbThumb.style.transform = "translateY(" + Math.min(room, Math.max(0, pos)) + "px)";
+    }
+
+    // トラック上の位置(px)からその位置へジャンプ。
+    // ドラッグ中は開始時の m を渡し、算出基準が動いてつまみが指からずれるのを防ぐ。
+    function scrollToTrackPos(pos, m) {
+      m = m || scrollMetrics();
+      var room = m.ch - sbThumb.offsetHeight;
+      if (room <= 0) return;
+      pos = Math.min(room, Math.max(0, pos));
+      ty = -(m.top + pos / room * (m.total - m.ch));
+      apply();
+    }
+
+    var sbDrag = null;
+    sbThumb.addEventListener("pointerdown", function (e) {
+      e.preventDefault();
+      e.stopPropagation();   // キャンバスのドラッグパンを起こさない
+      // transform で動かしているため offsetTop では位置が取れない。実測値を使う
+      var top = sbThumb.getBoundingClientRect().top - sbTrack.getBoundingClientRect().top;
+      sbDrag = { y: e.clientY, top: top, m: scrollMetrics() };
+      sbThumb.setPointerCapture(e.pointerId);
+      sbThumb.classList.add("dragging");
+    });
+    sbThumb.addEventListener("pointermove", function (e) {
+      if (!sbDrag) return;
+      scrollToTrackPos(sbDrag.top + (e.clientY - sbDrag.y), sbDrag.m);
+    });
+    function endSbDrag(e) {
+      if (!sbDrag) return;
+      sbDrag = null;
+      sbThumb.classList.remove("dragging");
+      try { sbThumb.releasePointerCapture(e.pointerId); } catch (_) {}
+    }
+    sbThumb.addEventListener("pointerup", endSbDrag);
+    sbThumb.addEventListener("pointercancel", endSbDrag);
+
+    // トラックの余白をクリックしたら、その位置へつまみの中心を合わせる
+    sbTrack.addEventListener("pointerdown", function (e) {
+      if (e.target === sbThumb) return;
+      e.preventDefault();
+      e.stopPropagation();
+      var r = sbTrack.getBoundingClientRect();
+      scrollToTrackPos(e.clientY - r.top - sbThumb.offsetHeight / 2);
+    });
+
+    // 描画内容(Mermaid の遅延描画を含む)やウィンドウサイズの変化に追従
+    if (global.ResizeObserver) {
+      var ro = new global.ResizeObserver(syncScrollbar);
+      ro.observe(viewport);
+      ro.observe(canvas);
+    }
+    window.addEventListener("resize", syncScrollbar);
+
 
     // 指定した画面座標(cx,cy)を中心にズーム
     function zoomAt(cx, cy, factor) {
@@ -247,7 +333,8 @@
       scrollToElement: scrollToElement,
       offsetTopIn: offsetTopIn,
       getScale: function () { return scale; },
-      getOffset: function () { return { tx: tx, ty: ty }; }
+      getOffset: function () { return { tx: tx, ty: ty }; },
+      refresh: syncScrollbar
     };
   }
 
