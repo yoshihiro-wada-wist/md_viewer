@@ -636,8 +636,8 @@
         scale = ns;
         apply();
       }
+      // 図の全体が枠内に収まる倍率で中央に配置する
       function fit() {
-        // 全体表示は「横幅一杯」に合わせる（縦が長い図は縦方向へパン可能）
         vp.style.transform = "translate(0px,0px) scale(1)";
         // getBoundingClientRect はページ全体のズーム倍率も掛かった画面上の寸法を返すため、
         // 枠のレイアウト幅との比から外側の倍率を割り出して除外する
@@ -649,11 +649,11 @@
         var ih = svgRect.height / outer;
         var bw = box.clientWidth, bh = box.clientHeight;
         if (!iw || !ih) { scale = 1; tx = 0; ty = 0; apply(); return; }
-        scale = clamp((bw - 8) / iw);
+        var pad = 8;
+        // 縦横のうち厳しい方に合わせる（縦長の図も枠内へ収める）
+        scale = clamp(Math.min((bw - pad) / iw, (bh - pad) / ih));
         tx = (bw - iw * scale) / 2;
-        // 図の高さが枠に収まるなら縦中央、はみ出すなら上寄せ
-        var sh = ih * scale;
-        ty = sh <= bh ? (bh - sh) / 2 : 4;
+        ty = (bh - ih * scale) / 2;
         apply();
       }
 
