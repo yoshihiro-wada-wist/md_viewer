@@ -422,6 +422,11 @@
   white-space: normal;
 }
 .markdown-body pre.mermaid[data-processed="true"] svg { max-width: 100%; height: auto; }
+/* ラベル枠の寸法は mermaid が body 直下(行間 normal)で計測して決める。
+   本文の line-height: 1.7 や p の余白を引き継ぐと複数行のラベルが枠からはみ出て
+   切れるため、図の中は計測時と同じ状態に戻す。 */
+.markdown-body svg foreignObject { line-height: normal; }
+.markdown-body svg foreignObject p { margin: revert; }
 
 /* ---- Mermaid 図 専用の 拡大縮小・パン移動ビューポート ---- */
 .markdown-body .mmd-pz {
