@@ -69,4 +69,3 @@
 | `markdown.js` | 自己完結型マークダウンパーサー |
 | `mermaid.min.js` | Mermaid ダイアグラム描画ライブラリ（ローカル同梱） |
 | `content.js` / `content.css` | `.md` を直接開いた際の自動表示 |
-| `sample_data/` | 表示確認用のサンプル `.md`（`sample.md`） |

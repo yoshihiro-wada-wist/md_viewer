@@ -17,3 +17,6 @@ desktop.ini
 # ログ・一時ファイル
 *.log
 tmp/
+
+# 表示確認用サンプル (ローカルのみ)
+sample_data/
