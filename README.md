@@ -1,5 +1,7 @@
 # Markdown Viewer — Chrome 拡張機能
 
+日本語 | [English](README.en.md)
+
 マークダウンファイルをビジュアルに表示する Chrome 拡張機能です。マークダウン記法で書かれた部分をレンダリングして表示し、**拡大縮小・パン移動・ドラッグ&ドロップ** に対応しています。
 
 ## 主な機能
@@ -69,6 +71,7 @@
 | `markdown.js` | 自己完結型マークダウンパーサー |
 | `mermaid.min.js` | Mermaid ダイアグラム描画ライブラリ（ローカル同梱） |
 | `content.js` / `content.css` | `.md` を直接開いた際の自動表示 |
+| `README.en.md` | README の英語版 |
 | `LICENSE` | ライセンス（MIT） |
 
 ## ライセンス
