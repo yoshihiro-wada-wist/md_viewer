@@ -69,3 +69,10 @@
 | `markdown.js` | 自己完結型マークダウンパーサー |
 | `mermaid.min.js` | Mermaid ダイアグラム描画ライブラリ（ローカル同梱） |
 | `content.js` / `content.css` | `.md` を直接開いた際の自動表示 |
+| `LICENSE` | ライセンス（MIT） |
+
+## ライセンス
+
+[MIT License](LICENSE) です。
+
+同梱の `mermaid.min.js` は [Mermaid](https://github.com/mermaid-js/mermaid) のビルド済みファイルで、Mermaid の MIT License に従います。
